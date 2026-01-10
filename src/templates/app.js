@@ -382,14 +382,14 @@ router.get('/api/json/:key', async (req, res) => {
 });
 
 // --- Internal Routes (Menu/Triggers) ---
-// Note: All server endpoints must start with /api/ in Devvit Web
+// Note: System routes must start with /internal/ per devvit.json schema requirements
 
-router.post('/api/internal/onInstall', async (req, res) => {
+router.post('/internal/onInstall', async (req, res) => {
     console.log('App installed!');
     res.json({ success: true });
 });
 
-router.post('/api/internal/fulfill-payment', async (req, res) => {
+router.post('/internal/fulfill-payment', async (req, res) => {
     // WebSim Payment Fulfillment Hook
     // Matches devvit.json payments.endpoints.fulfillOrder
     console.log('[Server] Fulfilling Payment...', JSON.stringify(req.body));
@@ -445,7 +445,7 @@ router.post('/api/internal/fulfill-payment', async (req, res) => {
     res.json({ success: true });
 });
 
-router.post('/api/internal/createPost', async (req, res) => {
+router.post('/internal/createPost', async (req, res) => {
     console.log('Creating game post...');
     
     try {

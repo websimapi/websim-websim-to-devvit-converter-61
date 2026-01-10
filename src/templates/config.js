@@ -62,11 +62,11 @@ export const generateDevvitJson = (slug, entrypoints) => JSON.stringify({
   "payments": {
     "productsFile": "products.json",
     "endpoints": {
-      "fulfillOrder": "/api/internal/fulfill-payment"
+      "fulfillOrder": "/internal/fulfill-payment"
     }
   },
   "triggers": {
-    "onAppInstall": "/api/internal/onInstall"
+    "onAppInstall": "/internal/onInstall"
   },
   "menu": {
     "items": [
@@ -74,7 +74,7 @@ export const generateDevvitJson = (slug, entrypoints) => JSON.stringify({
         "label": "Add Game Post",
         "location": "subreddit",
         "forUserType": "moderator",
-        "endpoint": "/api/internal/createPost"
+        "endpoint": "/internal/createPost"
       }
     ]
   }
