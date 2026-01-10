@@ -53,9 +53,16 @@ export const generateDevvitJson = (slug, entrypoints) => JSON.stringify({
   "permissions": {
     "redis": true,
     "realtime": true,
+    "payments": true,
     "reddit": {
       "enable": true,
       "asUser": ["SUBMIT_POST", "SUBMIT_COMMENT"]
+    }
+  },
+  "payments": {
+    "productsFile": "products.json",
+    "endpoints": {
+      "fulfillOrder": "/internal/fulfill-payment"
     }
   },
   "triggers": {

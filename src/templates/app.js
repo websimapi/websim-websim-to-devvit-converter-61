@@ -11,53 +11,11 @@ import {
     reddit,
     realtime
 } from '@devvit/web/server';
-import { addPaymentHandler } from '@devvit/payments';
-
 // Enable Realtime & Reddit API
 Devvit.configure({
     redditAPI: true,
     realtime: true,
     http: true
-});
-
-// --- Payments Handler ---
-// Handles tip_X_gold products
-addPaymentHandler({
-    fulfillOrder: async (order, ctx) => {
-        if (order.status === 'PAID') {
-            try {
-                const product = order.products && order.products[0];
-                const sku = product ? product.sku : '';
-                
-                // SKU format: tip_25_gold
-                const match = sku.match(/tip_(\d+)_gold/);
-                const amount = match ? parseInt(match[1]) : 0;
-                
-                if (amount > 0 && ctx.userId && ctx.postId) {
-                    const tipKey = \`tips:\${ctx.postId}:\${ctx.userId}\`;
-                    await ctx.redis.incrBy(tipKey, amount);
-                    
-                    // Automated Thank You Comment
-                    try {
-                        const comment = await ctx.reddit.submitComment({
-                            id: ctx.postId,
-                            text: \`**Tipped \${amount} Gold!** 🟡\\n\\n*(Automated via Devvit Payments)*\`
-                        });
-                        
-                        const metaKey = \`comment_metadata:\${comment.id}\`;
-                        await ctx.redis.hSet(metaKey, {
-                            type: 'tip_comment',
-                            credits_spent: String(amount)
-                        });
-                    } catch(err) {
-                        console.warn('Failed to post tip comment:', err);
-                    }
-                }
-            } catch (e) {
-                console.error("Payment Fulfillment Error:", e);
-            }
-        }
-    }
 });
 
 const app = express();
@@ -428,6 +386,62 @@ router.get('/api/json/:key', async (req, res) => {
 
 router.post('/internal/onInstall', async (req, res) => {
     console.log('App installed!');
+    res.json({ success: true });
+});
+
+router.post('/internal/fulfill-payment', async (req, res) => {
+    // WebSim Payment Fulfillment Hook
+    // Matches devvit.json payments.endpoints.fulfillOrder
+    console.log('[Server] Fulfilling Payment...', JSON.stringify(req.body));
+    
+    try {
+        const event = req.body;
+        // In Devvit Web payments, the body typically contains the order object
+        // but we handle potential wrapping just in case
+        const order = event.order || event; 
+
+        if (order.status === 'PAID') {
+            const product = order.products && order.products[0];
+            const sku = product ? product.sku : '';
+            
+            // SKU format: tip_25_gold
+            const match = sku.match(/tip_(\d+)_gold/);
+            const amount = match ? parseInt(match[1]) : 0;
+            
+            // Context logic for payments
+            const buyerId = context.userId; 
+            const postId = context.postId;
+
+            if (amount > 0 && buyerId && postId) {
+                console.log(\`[Payment] Processing tip of \${amount} from \${buyerId} on \${postId}\`);
+                
+                const tipKey = \`tips:\${postId}:\${buyerId}\`;
+                await redis.incrBy(tipKey, amount);
+                
+                // Automated Thank You Comment
+                try {
+                    const comment = await reddit.submitComment({
+                        id: postId,
+                        text: \`**Tipped \${amount} Gold!** 🟡\\n\\n*(Automated via Devvit Payments)*\`
+                    });
+                    
+                    const metaKey = \`comment_metadata:\${comment.id}\`;
+                    await redis.hSet(metaKey, {
+                        type: 'tip_comment',
+                        credits_spent: String(amount)
+                    });
+                } catch(err) {
+                    console.warn('Failed to post tip comment:', err);
+                }
+            } else {
+                console.warn('[Payment] Invalid tip data:', { amount, buyerId, postId, sku });
+            }
+        }
+    } catch(e) {
+        console.error("Payment Fulfillment Error:", e);
+    }
+    
+    // Always acknowledge success to prevent retries or errors on client
     res.json({ success: true });
 });
 
